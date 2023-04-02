@@ -12,6 +12,8 @@ import software.amazon.awssdk.http.Protocol;
 import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.ec2.Ec2AsyncClient;
+import software.amazon.awssdk.services.elasticache.ElastiCacheAsyncClient;
+import software.amazon.awssdk.services.rds.RdsAsyncClient;
 
 import java.io.IOException;
 import java.net.URI;
@@ -29,24 +31,6 @@ public class AwsVpcConnectivityCheckerBackendApplication {
 	@Bean
 	public CoreV1Api coreV1Client() {
 		return new CoreV1Api();
-	}
-
-	@Bean
-	public Ec2AsyncClient ec2Client(
-			@Value("aws.ec2.region") String region,
-			@Value("aws.ec2.endpoint:unset") String endpoint
-	) {
-		var httpClient = NettyNioAsyncHttpClient.builder()
-				.protocol(Protocol.HTTP2)
-				.maxConcurrency(Integer.MAX_VALUE)
-				.build();
-		var builder = Ec2AsyncClient.builder()
-				.region(Region.of(region))
-				.httpClient(httpClient);
-		if (!"unset".equals(endpoint)) {
-			builder.endpointOverride(URI.create(endpoint));
-		}
-		return builder.build();
 	}
 
 }

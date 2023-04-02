@@ -1,16 +1,14 @@
 package in._10h.java.awsvpcconnectivitychecker.backend.k8sclient;
 
-import in._10h.java.awsvpcconnectivitychecker.backend.k8sclient.K8sApiCallback;
 import io.kubernetes.client.openapi.ApiCallback;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.apis.CoreV1Api;
-import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1PodList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @Component
 public class KubernetesClient {
@@ -28,12 +26,14 @@ public class KubernetesClient {
 
     }
 
-    public Flux<V1Pod> listNamespacedPod(final String namespace) {
-        return Flux.create((sink) -> {
+    public Mono<V1PodList> listNamespacedPod(final String namespace) {
+        return Mono.create((sink) -> {
             final ApiCallback<V1PodList> callback = K8sApiCallback.of((podList, status, headers) -> {
-                for (var pod : podList.getItems()) {
-                    sink.next(pod);
+                if (status / 100 == 2) {
+                    sink.success(podList);
+                    return;
                 }
+                sink.error(new ErrorStatusException(status));
             });
             try {
                 this.coreV1Client.listNamespacedPodAsync(
@@ -54,5 +54,34 @@ public class KubernetesClient {
                 sink.error(e);
             }
         });
+    }
+    public static class ErrorStatusException extends RuntimeException {
+        private final int status;
+        public ErrorStatusException(final int status) {
+            super();
+            this.status = status;
+        }
+        public ErrorStatusException(final int status, final String message) {
+            super(message);
+            this.status = status;
+        }
+        public ErrorStatusException(final int status, final Throwable cause) {
+            super(cause);
+            this.status = status;
+        }
+        public ErrorStatusException(final int status, final String message, final Throwable cause) {
+            super(message, cause);
+            this.status = status;
+        }
+        protected ErrorStatusException(
+                final int status,
+                final String message,
+                final Throwable cause,
+                final boolean enableSuppression,
+                final boolean enableWritableStackTrace
+        ) {
+            super(message, cause, enableSuppression, enableWritableStackTrace);
+            this.status = status;
+        }
     }
 }
