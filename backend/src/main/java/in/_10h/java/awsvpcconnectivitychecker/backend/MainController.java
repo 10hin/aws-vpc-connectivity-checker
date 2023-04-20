@@ -2,7 +2,6 @@ package in._10h.java.awsvpcconnectivitychecker.backend;
 
 import in._10h.java.awsvpcconnectivitychecker.backend.awsclient.AWSClient;
 import in._10h.java.awsvpcconnectivitychecker.backend.k8sclient.KubernetesClient;
-import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1PodList;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,25 +40,21 @@ public class MainController {
     ) {
 
         return this.kubernetesClient.listNamespacedPod(namespace)
-                .flatMapMany(this::toPodInfo);
+                .flatMapIterable(V1PodList::getItems)
+                .flatMap(this::toPodInfo);
 
     }
 
-    private Flux<PodInfo> toPodInfo(final V1PodList podList) {
+    private Flux<PodInfo> toPodInfo(final V1Pod pod) {
+        var metadata = Objects.requireNonNull(pod.getMetadata());
+        var namespace = Objects.requireNonNull(metadata.getNamespace());
+        var name = Objects.requireNonNull(metadata.getName());
 
-        return Flux.fromIterable(podList.getItems())
-                .flatMap((baseInfo) -> {
-                    var metadata = Objects.requireNonNull(baseInfo.getMetadata());
-                    var namespace = Objects.requireNonNull(metadata.getNamespace());
-                    var name = Objects.requireNonNull(metadata.getName());
+        var status = Objects.requireNonNull(pod.getStatus());
+        var ipAddress = Objects.requireNonNull(status.getPodIP());
 
-                    var status = Objects.requireNonNull(baseInfo.getStatus());
-                    var ipAddress = Objects.requireNonNull(status.getPodIP());
-
-                    return this.awsClient.listENIIDsByIPAddress(ipAddress)
-                            .map(eniID -> new PodInfo(namespace, name, ipAddress, eniID));
-                });
-
+        return this.awsClient.listENIIDsByIPAddress(ipAddress)
+                .map(eniID -> new PodInfo(namespace, name, ipAddress, eniID));
     }
 
     @GetMapping("/rds/dbcluster/{dbClusterIdentifier}")

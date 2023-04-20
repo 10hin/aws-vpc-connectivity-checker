@@ -3,7 +3,6 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/aws-vpc-connectivity-checker.iml" filepath="$PROJECT_DIR$/.idea/aws-vpc-connectivity-checker.iml" />
-      <module fileurl="file://$PROJECT_DIR$/backend/aws-vpc-connectivity-checker-backend.iml" filepath="$PROJECT_DIR$/backend/aws-vpc-connectivity-checker-backend.iml" />
     </modules>
   </component>
 </project>
