@@ -51,10 +51,12 @@ public class KubernetesClient {
             fetchPodListWithToken.set(token -> {
                 final ApiCallback<V1PodList> callback = K8sApiCallback.of(
                         (podList, status, headers) -> {
-                            Optional.of(podList)
-                                    .map(V1PodList::getMetadata)
-                                    .map(V1ListMeta::getContinue)
-                                    .ifPresent(nextToken::set);
+                            nextToken.set(
+                                    Optional.of(podList)
+                                            .map(V1PodList::getMetadata)
+                                            .map(V1ListMeta::getContinue)
+                                            .orElse(null)
+                            );
                             // When canceled or disposed this Flux, count may set to zero concurrently.
                             // Therefore, `remainingCount` may be negative.
                             final long remainingCount = count.decrementAndGet();
